@@ -1,0 +1,228 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>FIDO_U2F_KEDACOM</title>
+    <script src="js/jquery-1.11.2.min.js"></script>
+    <script src="js/jquery-ui-1.12.1/jquery-ui.js"></script>
+
+    <script src="js/u2f-api.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/mainContent.js"></script>
+
+    <link href="js/jquery-ui-1.12.1/jquery-ui.css" rel="stylesheet">
+    <link href="js/jquery-ui-1.12.1/jquery-ui.theme.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/mainContent.css" type="text/css"
+          media="screen">
+
+    <link rel='icon' href='images/onvif.ico' type='image/x-ico'/>
+    <style type="text/css">
+        html {
+            height: 100%
+        }
+
+        body {
+            height: 100%;
+            margin: 0px;
+            padding: 0px
+        }
+
+        sidebar {
+            height: 88%;
+            width: 22%;
+        }
+
+        .navi {
+            height: 10%;
+
+        }
+
+        .naviele {
+            margin-top: 15px;
+            margin-left: 50px;
+        }
+    </style>
+</head>
+<body>
+<div id="header" class="white  wrapper navi">
+    <h2 class='pagetitle naviele' style="align-self: center">
+        <img src="/images/logo.png" width="189" height="35"
+             style="vertical-align: top; margin-bottom: -3px;">
+        &nbsp;FIDO_U2F_管理
+    </h2>
+
+    <div class="pagestatus naviele">
+        <img id='exit' src="/images/turnon.png" width="30" height="35"
+             title="退出" class="roundedDivBorder"
+             style="filter: alpha(opacity =                     50); -moz-opacity: 0.5; -khtml-opacity: 0.5; opacity: 0.5; cursor: pointer; margin-right: 50px">
+    </div>
+</div>
+
+<div id="userCtxMenu" class="popup_menu" hidden="hidden">
+    <ul>
+        <li><a menu="menuAddUser">增加用户</a>
+        </li>
+        <li><a menu="menuDelUser">删除用户</a>
+        </li>
+    </ul>
+</div>
+
+
+<sidebar class="white roundedDivBorder " id="svrSideBar">
+    <h3>用户列表</h3>
+    <ul>
+        <!-- li id="addNavigationControl">addNavigationControl
+        </li>
+        <li id="setMapStyle">setMapStyle
+        </li -->
+    </ul>
+</sidebar>
+
+<div id="magContent" class=" white roundedDivBorder"
+     style="margin-top: 5px; margin-right: 10px; margin-left: 10px;float: right;width: 74%;height: 88%">
+    <div id="mgmTabs" style="height:100%">
+        <ul>
+            <li><a href="#tabs-1">用户操作</a></li>
+            <li><a href="#tabs-2">U2F注册数据</a></li>
+        </ul>
+        <div id="tabs-1" >
+            <fieldset align="left" style="padding:20px;margin-top:10px">
+                <legend>用户信息</legend>
+                <table cellpadding="5">
+                    <tr>
+                        <td align="left">用户名:</td>
+                        <td align="left"><input name="userName" required type="text" size="60"
+                                                disabled="disabled">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="left">密码<font color="red">*</font>：</td>
+                        <td align="left"><input name="passWord" required type="password"
+                                                size="60"></td>
+                    </tr>
+                    <tr>
+                        <td align="left">确认密码<font color="red">*</font>：</td>
+                        <td align="left"><input name="confirmPassWord" required type="password"
+                                                size="60"></td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input id="btnModifyPwd" type="button" class='button  bigrounded blue' value="修改密码">
+                        </td>
+                        <td>
+                        </td>
+                    </tr>
+                </table>
+            </fieldset>
+            <fieldset align="left" style="padding:20px;margin-top:10px">
+                <legend>U2F设备绑定操作</legend>
+                <table cellpadding="5">
+                    <tr>
+                        <td align="left">challenge：</td>
+                        <td align="left"><input name="challenge" type="text" size="80" disabled="disabled"></td>
+                    </tr>
+                    <tr>
+                        <td align="left">version：</td>
+                        <td align="left"><input name="version" type="text" size="80" disabled="disabled"></td>
+                    </tr>
+                    <tr>
+                        <td align="left">appId：</td>
+                        <td align="left"><input name="appId" type="text" size="80" disabled="disabled"></td>
+                    </tr>
+                    <tr>
+                        <td align="left">keyHandle：</td>
+                        <td align="left"><input name="keyHandle" type="text" size="80" disabled="disabled"></td>
+                    </tr>
+                    <tr>
+                        <td align="left">publicKey：</td>
+                        <td align="left"><input name="publicKey" type="text" size="80" disabled="disabled"></td>
+                    </tr>
+                    <tr>
+                        <td align="right">
+                            <input name="btnRegU2f" type="button" class='button  bigrounded blue' value="绑定U2F设备">
+                        </td>
+                        <td align="left">
+                        </td>
+                    </tr>
+                </table>
+            </fieldset>
+        </div>
+        <div id="tabs-2">
+            <table title="" style="" cellpadding="10">
+                <tr>
+                    <td align="left" width="20%">
+                        <b>keyHandle列表:</b>
+                    </td>
+                    <td align="left">
+                        <select id="keyhandleList" class='' style="width: 60%">
+                            <!-- option value="volvo">Volvo</option -->
+                        </select>
+                    </td>
+                </tr>
+            </table>
+
+            <fieldset align="left" style="padding:20px;margin-top:10px">
+                <legend>U2F绑定数据</legend>
+                <table title="" style="" cellpadding="10">
+                    <tr>
+                        <td align="left">keyHandle:</td>
+                        <td align="left"><input name="regKeyHandle" type="text" size="80" disabled="disabled"></td>
+                    </tr>
+                    <tr>
+                        <td align="left">publicKey:</td>
+                        <td align="left"><input name="regPublicKey" type="text" size="80" disabled="disabled"></td>
+                    </tr>
+                    <tr>
+                        <td align="left">counter:</td>
+                        <td align="left"><input name="regCounter" type="text" size="10" disabled="disabled"></td>
+                    </tr>
+                    <tr>
+                        <td align="left">compromised:</td>
+                        <td align="left"><input name="regCompromised" type="text" size="10" disabled="disabled"></td>
+                    </tr>
+                    <tr>
+                        <td align="left">
+                            <input name="btnUnregU2f" type="button" class='button  bigrounded blue' value="解除绑定数据">
+                        </td>
+                        <td align="left">
+                        </td>
+                    </tr>
+                </table>
+            </fieldset>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="promptModal" class="" hidden="hidden" title="注册U2F设备">
+    <div class="modal-header">
+        <h3 id="myModalLabel">设备闪烁时，请在30秒内触摸U2F设备进行注册</h3>
+    </div>
+    <div class="modal-body">
+        <p>如果浏览器提示您:"是否允许访问您的U2F设备?"，请选择“允许”。</p>
+    </div>
+</div>
+
+<div id="dialog-adduser" hidden="hidden" title="创建新用户">
+    <table cellpadding="5">
+        <tr>
+            <td align="left">用户名<font color="red">*</font>：</td>
+            <td align="left"><input id="username_input" type="text" size="20">
+            </td>
+        </tr>
+        <tr>
+            <td align="left">密码<font color="red">*</font>：</td>
+            <td align="left"><input id="password_input" type="password" size="20"></td>
+        </tr>
+        <tr>
+            <td align="left">确认密码<font color="red">*</font>：</td>
+            <td align="left"><input id="cpassword_input" type="password"
+                                    size="20"></td>
+        </tr>
+    </table>
+</div>
+
+</body>
+</html>

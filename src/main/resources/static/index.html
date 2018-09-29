@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]>
+<html lang="en" class="no-js ie6 lt8"> <![endif]-->
+<!--[if IE 7 ]>
+<html lang="en" class="no-js ie7 lt8"> <![endif]-->
+<!--[if IE 8 ]>
+<html lang="en" class="no-js ie8 lt8"> <![endif]-->
+<!--[if IE 9 ]>
+<html lang="en" class="no-js ie9"> <![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!-->
+<html lang="en" class="no-js">
+<!--<![endif]-->
+<head>
+    <meta charset="UTF-8"/>
+    <!-- <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">  -->
+    <title>系统登录</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+          content="Login and Registration Form with HTML5 and CSS3"/>
+    <meta name="keywords"
+          content="html5, css3, form, switch, animation, :target, pseudo-class"/>
+    <meta name="author" content="Codrops"/>
+    <link rel="shortcut icon" href="../favicon.ico">
+    <link rel="stylesheet" type="text/css" href="css/demo.css"/>
+    <link rel="stylesheet" type="text/css" href="css/style.css"/>
+    <link rel="stylesheet" type="text/css" href="css/animate-custom.css"/>
+    <link href="js/jquery-ui-1.12.1/jquery-ui.css" rel="stylesheet">
+    <link href="js/jquery-ui-1.12.1/jquery-ui.theme.css" rel="stylesheet">
+    <link rel='icon' href='images/onvif.ico' type=‘image/x-ico’/>
+
+    <script src="js/jquery-1.11.2.min.js"></script>
+    <script src="js/jquery-ui-1.12.1/jquery-ui.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/u2f-api.js"></script>
+    <script language="javascript" src="js/login.js"></script>
+
+</head>
+<body>
+<div class="container">
+    <!-- Codrops top bar -->
+    <div class="codrops-top">
+        <a href=" http://www.kedacom.com"> <img src="images/logo.png"
+                                                width="190" height="40">
+        </a>
+        <div class="clr"></div>
+    </div>
+    <!--/ Codrops top bar -->
+    <header>
+        <h1>
+            FIDO_U2F_KEDACOM</span>
+        </h1>
+        <nav class="codrops-demos">
+				<span>&nbsp <strong>(DEMO)</strong>
+				</span>
+
+        </nav>
+    </header>
+    <section>
+        <div id="container_demo">
+            <a class="hiddenanchor" id="toregister"></a> <a class="hiddenanchor"
+                                                            id="tologin"></a>
+            <div id="wrapper">
+                <div id="login" class="animate form">
+                    <form action="sign" autocomplete="on" method="post">
+                        <h1>Log in</h1>
+                        <p>
+                            <label for="username" class="uname" data-icon="u"> 用户名</label>
+                            <input id="username" name="username" required type="text"
+                                   placeholder="admin"/>
+                        </p>
+                        <p>
+                            <label for="password" class="youpasswd" data-icon="p">
+                                用户密码 </label> <input id="password" name="password" required
+                                                     type="password" placeholder="password"/>
+                        </p>
+                        <p class="keeplogin" hidden="true">
+                            <input type="checkbox" name="loginkeeping" id="loginkeeping"
+                                   value="loginkeeping"/> <label for="loginkeeping">保持用户登录状态</label>
+                        </p>
+                        <p id="loginerror" align="right"
+                           style="font-size: 12px; color: #F00"></p>
+                        <p class="login button">
+                            <input type="button" value="登录"/>
+                        </p>
+
+                        <p class="change_link" align="right">版权所有©1995-2019
+                            苏州科达科技股份有限公司</p>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </section>
+</div>
+<!-- Modal -->
+<div id="promptModal" class="" hidden="hidden" title="验证U2F设备">
+    <div class="modal-header">
+        <b style="color: #000080">设备闪烁时，请在30秒内触摸U2F设备进行用户鉴权</b>
+    </div>
+    <div class="modal-body">
+        <p>如果浏览器提示您:"是否允许访问您的U2F设备?"，请选择“允许”。</p>
+    </div>
+
+</div>
+</body>
+</html>
