@@ -1,3 +1,4 @@
+# 开发支持U2F的站点
 # 1.如何构建运行
 &emsp;&emsp;该项目客户端使用jquery和jquery-ui编写，服务端使用spring-boot框架编写。可使用maven进行构建，使用如下命令：
 ```
@@ -52,7 +53,7 @@ u2f.appId=https://localhost:8443
 # 5.	使用的第三方库
 &emsp;&emsp;该项目在客户端使用的U2F签名和注册接口脚本均来自<https://demo.yubico.com/js/u2f-api.js>，服务端使用了yubico提供的u2flib-server-core和u2flib-server-attestation这两个库，可在pom文件中增加如下依赖：
 ```
-    <dependency>
+		<dependency>
 			<groupId>com.yubico</groupId>
 			<artifactId>u2flib-server-core</artifactId>
 			<version>0.19.0</version>
