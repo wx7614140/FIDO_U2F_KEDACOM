@@ -10,7 +10,7 @@ java -jar Kedacom-U2F-DEMO-0.0.1-SNAPSHOT.jar
 ```
 &emsp;&emsp;上面的程序运行后，启动了一个tomcat服务器，支持http和https两种模式。用户可在浏览器中使用“http://localhost:8080” 和 “https://localhost:8443” 两种模式访问，在http模式下不支持U2F设备。
 # 2.如何支持HTTPS
-&emsp;&emsp;为使用HTTPS，需要使用自签名证书，我们使用JDK自带的keytool生成自签名证书tomcat.keystore，项目运行时与运行jar包放在同一目录下。生成命令如下：
+&emsp;&emsp;为使用HTTPS，需要使用自签名证书，我们使用JDK自带的keytool生成自签名证书tomcat.keystore，项目运行时放在当前工作目录下。生成命令如下：
 ```
 keytool -genkeypair -keystore tomcat.keystore  -alias tomcat -keyalg RSA -keysize 2048 -validity 5000 -dname "CN=localhost, OU=kedacom, O=kedacom, L=shanghai, ST=shanghai, C=cn" -ext "SAN=DNS:localhost,IP:172.16.64.59" -ext "BC=ca:true"
 ```
