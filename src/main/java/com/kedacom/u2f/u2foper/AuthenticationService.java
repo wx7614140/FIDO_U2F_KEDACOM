@@ -99,7 +99,6 @@ public class AuthenticationService {
 	private final class StartAuthenticationResponse {
 		public final boolean success = true;
 		public final AssertionRequestWrapper request;
-		public final StartAuthenticationActions actions = new StartAuthenticationActions();
 		public StartAuthenticationResponse(AssertionRequestWrapper request) throws MalformedURLException {
 			this.request = request;
 		}
@@ -153,45 +152,28 @@ public class AuthenticationService {
 
 	/**
 	 * It checks the sign occured by U2F epuipment using the user registered data
-	 * @param frr
+	 * @param response
 	 * @param session
 	 * @return
 	 */
-//	@RequestMapping(value = "/checkSign", method = RequestMethod.POST)
-//	private ResponseStateInfo checkSign(@RequestBody FinishRegSignRequest frr, HttpSession session) {
-//		ResponseStateInfo lsi = new ResponseStateInfo();
-//		if (frr.getErrorCode() == U2F_ErrorCode.OK.getStateId()) {
-//			// errcode is ok
-//			try {
-//				SignResponse signResponse = SignResponse.fromJson(frr.getTokenResponse());
-//				SignRequestData authenticateRequest = SignRequestData
-//						.fromJson(challengeStore.remove(frr.getChallenge()));
-//				CredentialRegistration registration = null;
-//				relyingParty.finishAssertion(FinishAssertionOptions.builder().request())
-//				registration = u2f.finishSignature(authenticateRequest, signResponse,
-//						us.getUserRegInfo(frr.getUsername()));
-//				session.setAttribute("username", frr.getUsername());
-//				lsi.setResponseState(ResponseState.FINISH_SIGN.getStateId());
-//				log.info("[success]check_Sign:  challenge:" + frr.getChallenge() + " DeviceRegistration:" + registration.toJson());
-//			} catch (U2fBadInputException ube) {
-//				log.error("finishRegistration U2fBadInputException:", ube);
-//				lsi.setResponseState(ResponseState.SERVER_ERROR.getStateId());
-//			} catch (DeviceCompromisedException e) {
-//				log.error("Device possibly compromised and therefore blocked: " + e.getMessage());
-//				lsi.setResponseState(ResponseState.SERVER_ERROR.getStateId());
-//			} catch (U2fAuthenticationException e) {
-//				log.error("Authentication failed: " + e.getCause().getMessage());
-//				lsi.setResponseState(ResponseState.SERVER_ERROR.getStateId());
-//			}
-//		} else {
-//			// errcode is not ok,remove challenge and return error
-//			challengeStore.remove(frr.getChallenge());
-//			log.error("checkSign get errorcode from client:" + frr.getErrorCode() + ".Remove challenge:"
-//					+ frr.getChallenge());
-//			lsi.setResponseState(ResponseState.REMOVE_CHALLENGE.getStateId());
-//		}
-//		return lsi;
-//	}
+	@RequestMapping(value = "/checkSign", method = RequestMethod.POST)
+	private ResponseStateInfo checkSign(@RequestBody String response, HttpSession session) {
+		log.info("finishSign responseJson: {}", response);
+		Either<List<String>, WebAuthnServer.SuccessfulAuthenticationResult> result = server.finishAuthentication(response);
+		if (result.isRight()) {
+			session.setAttribute("username", result.right().get().getUsername());
+			return finishResponse(
+					result,
+					"U2F registration failed; further error message(s) were unfortunately lost to an internal server error.",
+					ResponseState.FINISH_SIGN.getStateId(),
+					response
+			);
+		} else {
+
+			return messagesJson(ResponseState.SERVER_ERROR.getStateId(), result.left().get());
+		}
+
+	}
 
 	/**
 	 * user start register
@@ -249,7 +231,7 @@ public class AuthenticationService {
 				result,
 				"U2F registration failed; further error message(s) were unfortunately lost to an internal server error.",
 				ResponseState.FINISH_REGISTER.getStateId(),
-				jsonMapper.writeValueAsString(response)
+				response
 		);
 	}
 

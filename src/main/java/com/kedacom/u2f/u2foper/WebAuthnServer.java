@@ -113,7 +113,7 @@ public class WebAuthnServer {
     @Autowired
     public WebAuthnServer(RegistrationStorage userStorage, Cache<ByteArray, RegistrationRequest> registerRequestStorage,
                           Cache<ByteArray, AssertionRequestWrapper> assertRequestStorage,
-                          RelyingPartyIdentity rpIdentity, Set<String> origins) throws InvalidAppIdException, CertificateException {
+                          RelyingPartyIdentity rpIdentity, Set<String> origins,AppId appId) throws InvalidAppIdException, CertificateException {
         this.userStorage = userStorage;
         this.registerRequestStorage = registerRequestStorage;
         this.assertRequestStorage = assertRequestStorage;
@@ -130,7 +130,7 @@ public class WebAuthnServer {
             .allowUnrequestedExtensions(true)
             .allowUntrustedAttestation(true)
             .validateSignatureCounter(true)
-            .appId(new AppId(relyingPartyIdentity.getId()))
+            .appId(appId)
             .build();
     }
 
@@ -559,7 +559,7 @@ public class WebAuthnServer {
         try {
             response = jsonMapper.readValue(responseJson, AssertionResponse.class);
         } catch (IOException e) {
-            log.debug("Failed to decode response object", e);
+            log.error("Failed to decode response object", e);
             return Either.left(Arrays.asList("Assertion failed!", "Failed to decode response object.", e.getMessage()));
         }
 

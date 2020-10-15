@@ -64,20 +64,55 @@ function handle_LOGIN_WITHOUT_U2F(data) {
 
 /*绑定了U2F设备等待设备签名*/
 function handle_WAIT_SIGN(data) {
-    var signReqData = JSON.parse(data.responseData);
+    const signReqData = JSON.parse(data.responseData);
     trace("request sign 返回对象：", signReqData);
-    var appId = signReqData.appId;
-    var challenge = signReqData.challenge;
-    var signRequests = signReqData.signRequests;
-    $('#promptModal').dialog({
-        modal: true,
-        open: function (event, ui) {
-            $(".ui-dialog-titlebar-close", $(this).parent()).hide();
-        }
-    });
-    checkSign(appId, challenge, signRequests);
+    const request = signReqData.request
+    const requestId = request.requestId
+    const publicKeyCredentialRequestOptions = request.publicKeyCredentialRequestOptions
+    const username = request.username
+    executeAuthenticateRequest(publicKeyCredentialRequestOptions)
+        .then( response => {
+                return webauthn.responseToObject(response)
+            })
+        .then(response => {
+            console.log(response)
+            $('#promptModal').dialog({
+                modal: true,
+                open: function (event, ui) {
+                    $(".ui-dialog-titlebar-close", $(this).parent()).hide();
+                }
+            });
+            const data = {
+                username: username,
+                requestId: requestId,
+                credential: response
+            }
+            return data;
+        }).then(data =>{
+            trace("U2F sign返回值", data);
+            $('#promptModal').dialog("close");
+            if (data.errorCode) {
+                $('#loginerror').text("鉴权失败，U2F设备返回错误码：[" + data.errorCode + "]" + U2FErrorDesc[data.errorCode])
+            }
+            //向服务器发送签名验证请求
+            $.ajax({
+                type: "POST",
+                url: "/checkSign",
+                contentType: "application/json;charset=utf-8",
+                headers: {
+                    Accept: "application/json;charset=utf-8"
+                },
+                data: JSON.stringify(data),
+                dataType: "json",
+                success: handleCheckSignRsp,
+                error: ajaxError
+            });
+        })
 }
-
+function executeAuthenticateRequest(publicKeyCredentialRequestOptions) {
+    console.log('executeAuthenticateRequest', publicKeyCredentialRequestOptions);
+    return webauthn.getAssertion(publicKeyCredentialRequestOptions);
+}
 //接收U2F设备的签名操作，并发往服务器进行验证
 function checkSign(appId, challenge, signRequests) {
     u2f.sign(appId, challenge, signRequests, function (data) {

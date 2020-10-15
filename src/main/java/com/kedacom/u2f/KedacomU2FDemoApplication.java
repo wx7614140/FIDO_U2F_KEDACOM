@@ -61,6 +61,9 @@ public class KedacomU2FDemoApplication {
 	@Value("${u2f.appId}")
 	private String u2f_appId;
 
+	@Value("${u2f.rpId}")
+	private String u2f_rpId;
+
 	@Value("${u2f.appName}")
 	private String u2f_appName;
 
@@ -95,22 +98,16 @@ public class KedacomU2FDemoApplication {
 	@Bean
 	public RelyingPartyIdentity initRelyingPartyIdentity(){
 		RelyingPartyIdentity rpIdentity = RelyingPartyIdentity.builder()
-				.id(u2f_appId)
+				.id(u2f_rpId)
 				.name(u2f_appName)
 				.build();
 		return rpIdentity;
 	}
 
-//	@Bean
-//	public RelyingParty initRelyingParty() throws InvalidAppIdException {
-//		RelyingParty rp = RelyingParty.builder()
-//				.identity(initRelyingPartyIdentity())
-//				.credentialRepository(initCredentialRepository())
-//				.origins(origins())
-//				.appId(new AppId(u2f_appId))
-//				.build();
-//		return rp;
-//	}
+	@Bean
+	public AppId initAppId() throws InvalidAppIdException {
+		return new AppId(u2f_appId);
+	}
 
 	@Bean
 	public Set<String> origins(){

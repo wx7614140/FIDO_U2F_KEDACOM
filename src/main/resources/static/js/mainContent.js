@@ -207,8 +207,7 @@ function onKeyhandleListChange(el) {
     var currKeyhandle = this.value;
     var username = currentUi.username;
     if ((currKeyhandle) && (currKeyhandle != "")) {
-        var jsonbinddata = userRegInfoList[username]['userreginfo'][currKeyhandle];
-        var binddata = JSON.parse(jsonbinddata);
+        var binddata = userRegInfoList[username]['userreginfo'][currKeyhandle];
         $("input[name='regPublicKey']").val(binddata.publicKey);
         $("input[name='regKeyHandle']").val(binddata.keyHandle);
         $("input[name='regCounter']").val(binddata.counter);
@@ -423,43 +422,6 @@ function saveRegistration(appid, registeredKeys, registerRequests, request) {
 
     });
 }
-function executeU2fRegisterRequest(request) {
-    const appId = 'https://localhost:8443';
-    console.log('appId', appId);
-    return u2fRegister(
-        appId,
-        [{
-            version: 'U2F_V2',
-            challenge: request.publicKeyCredentialCreationOptions.challenge,
-            attestation: 'direct',
-        }],
-        request.publicKeyCredentialCreationOptions.excludeCredentials.map(cred => ({
-            version: 'U2F_V2',
-            keyHandle: cred.id,
-        }))
-    )
-        .then(result => {
-            const registrationDataBase64 = result.registrationData;
-            const clientDataBase64 = result.clientData;
-            const registrationDataBytes = base64url.toByteArray(registrationDataBase64);
-
-            const publicKeyBytes = registrationDataBytes.slice(1, 1 + 65);
-            const L = registrationDataBytes[1 + 65];
-            const keyHandleBytes = registrationDataBytes.slice(1 + 65 + 1, 1 + 65 + 1 + L);
-
-            const attestationCertAndTrailingBytes = registrationDataBytes.slice(1 + 65 + 1 + L);
-
-            return {
-                u2fResponse: {
-                    keyHandle: base64url.fromByteArray(keyHandleBytes),
-                    publicKey: base64url.fromByteArray(publicKeyBytes),
-                    attestationCertAndSignature: base64url.fromByteArray(attestationCertAndTrailingBytes),
-                    clientDataJSON: clientDataBase64,
-                },
-            };
-        })
-        ;
-}
 
 //服务器端返回完成注册信息，显示在界面上
 function handleSaveRegistrationRsp(rrs) {
@@ -471,7 +433,7 @@ function handleSaveRegistrationRsp(rrs) {
 
             //增加到全局变量中并渲染“绑定数据”TAB页
             clearBindData();
-            userRegInfoList[currentUi.username]['userreginfo'][regdate.keyHandle] = data.responseData;
+            userRegInfoList[currentUi.username]['userreginfo'][regdate.response.credential.u2fResponse.keyHandle] = regdate.response.credential.u2fResponse;
             var reginfo = userRegInfoList[currentUi.username]['userreginfo'];
             for (var keyhandle in reginfo) {
                 $("#keyhandleList").append("<option value=\"" + keyhandle + "\">" + keyhandle + "</option>");
