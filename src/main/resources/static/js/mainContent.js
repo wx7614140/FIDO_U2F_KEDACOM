@@ -358,17 +358,18 @@ function onBtnRegU2f(e) {
 function handleRequestRegistrationRsp(data, state) {
     trace("RegisterRequests:", data);
     if (data.responseState == ENUM_ResponseState.START_REGISTER) {
-        var responseData = JSON.parse(data.responseData);
-        var appid = responseData.appId;
-        var registeredKeys = /*[];*/responseData.registeredKeys;
-        var registerRequests = responseData.registerRequests;//[{"version":"U2F_V2","challenge":"...","appId":"https://www.kedacom.com"}]
+        const responseData = JSON.parse(data.responseData);
+        const appid = responseData.appId;
+        const registeredKeys = /*[];*/responseData.registeredKeys;
+        const registerRequests = responseData.registerRequests;//[{"version":"U2F_V2","challenge":"...","appId":"https://www.kedacom.com"}]
+        const request = responseData.request;
         $('#promptModal').dialog({
             modal: true,
             open: function (event, ui) {
                 $(".ui-dialog-titlebar-close", $(this).parent()).hide();
             }
         });
-        saveRegistration(appid, registeredKeys, registerRequests);
+        saveRegistration(appid, registeredKeys, registerRequests,request);
     } else {
         if (data.responseState == ENUM_ResponseState.SERVER_ERROR) {
             alert("服务端注册请求失败！");
@@ -377,32 +378,87 @@ function handleRequestRegistrationRsp(data, state) {
 }
 
 // 将U2F设备的回应数据发送到服务器端
-function saveRegistration(appid, registeredKeys, registerRequests) {
+function saveRegistration(appid, registeredKeys, registerRequests, request) {
     u2f.register(appid, registerRequests, registeredKeys, function (data) {
         trace("U2F Register返回值", data);
         $('#promptModal').dialog("close");
         if (data.errorCode) {
             alert("注册失败，U2F设备返回错误码：[" + data.errorCode + "]" + U2FErrorDesc[data.errorCode])
+        } else {
+            const registrationDataBase64 = data.registrationData;
+            const clientDataBase64 = data.clientData;
+            const registrationDataBytes = base64url.toByteArray(registrationDataBase64);
+
+            const publicKeyBytes = registrationDataBytes.slice(1, 1 + 65);
+            const L = registrationDataBytes[1 + 65];
+            const keyHandleBytes = registrationDataBytes.slice(1 + 65 + 1, 1 + 65 + 1 + L);
+
+            const attestationCertAndTrailingBytes = registrationDataBytes.slice(1 + 65 + 1 + L);
+
+            const credential = {
+                u2fResponse: {
+                    keyHandle: base64url.fromByteArray(keyHandleBytes),
+                    publicKey: base64url.fromByteArray(publicKeyBytes),
+                    attestationCertAndSignature: base64url.fromByteArray(attestationCertAndTrailingBytes),
+                    clientDataJSON: clientDataBase64,
+                },
+            };
+            $.ajax({
+                type: "POST",
+                url: "/saveRegistration",
+                contentType: "application/json;charset=utf-8",
+                headers: {
+                    Accept: "application/json;charset=utf-8"
+                },
+                data: JSON.stringify({
+                    requestId: request.requestId,
+                    credential: credential,
+                    sessionToken: null
+                }),
+                dataType: "json",
+                success: handleSaveRegistrationRsp(registerRequests),
+                error: ajaxError
+            });
         }
-        $.ajax({
-            type: "POST",
-            url: "/saveRegistration",
-            contentType: "application/json;charset=utf-8",
-            headers: {
-                Accept: "application/json;charset=utf-8"
-            },
-            data: JSON.stringify({
-                errorCode: data.errorCode ? data.errorCode : 0,
-                username: currentUi.username,
-                challenge: registerRequests[0].challenge,
-                tokenResponse: JSON.stringify(data)
-            }),
-            dataType: "json",
-            success: handleSaveRegistrationRsp(registerRequests),
-            error: ajaxError
+
+    });
+}
+function executeU2fRegisterRequest(request) {
+    const appId = 'https://localhost:8443';
+    console.log('appId', appId);
+    return u2fRegister(
+        appId,
+        [{
+            version: 'U2F_V2',
+            challenge: request.publicKeyCredentialCreationOptions.challenge,
+            attestation: 'direct',
+        }],
+        request.publicKeyCredentialCreationOptions.excludeCredentials.map(cred => ({
+            version: 'U2F_V2',
+            keyHandle: cred.id,
+        }))
+    )
+        .then(result => {
+            const registrationDataBase64 = result.registrationData;
+            const clientDataBase64 = result.clientData;
+            const registrationDataBytes = base64url.toByteArray(registrationDataBase64);
+
+            const publicKeyBytes = registrationDataBytes.slice(1, 1 + 65);
+            const L = registrationDataBytes[1 + 65];
+            const keyHandleBytes = registrationDataBytes.slice(1 + 65 + 1, 1 + 65 + 1 + L);
+
+            const attestationCertAndTrailingBytes = registrationDataBytes.slice(1 + 65 + 1 + L);
+
+            return {
+                u2fResponse: {
+                    keyHandle: base64url.fromByteArray(keyHandleBytes),
+                    publicKey: base64url.fromByteArray(publicKeyBytes),
+                    attestationCertAndSignature: base64url.fromByteArray(attestationCertAndTrailingBytes),
+                    clientDataJSON: clientDataBase64,
+                },
+            };
         })
         ;
-    });
 }
 
 //服务器端返回完成注册信息，显示在界面上
@@ -410,7 +466,7 @@ function handleSaveRegistrationRsp(rrs) {
     return function (data, state) {
         if (data.responseState == ENUM_ResponseState.FINISH_REGISTER) {
             trace("server Register返回值", data);
-            var regdate = JSON.parse(data.responseData);
+            const regdate = JSON.parse(data.responseData);
             showRegisterResult(rrs, regdate);
 
             //增加到全局变量中并渲染“绑定数据”TAB页
@@ -522,12 +578,46 @@ function handleModifyPasswordRsp(data,state){
 
 // 显示本次注册操作结果
 function showRegisterResult(registerRequests, responseData) {
-    $("input[name='challenge']").val(registerRequests[0].challenge);
-    $("input[name='version']").val(registerRequests[0].version);
-    $("input[name='appId']").val(registerRequests[0].appId);
-    $("input[name='keyHandle']").val(responseData.keyHandle);
-    $("input[name='publicKey']").val(responseData.publicKey);
-
+    $("input[name='info.success']").val(responseData.success);
+    $("input[name='info.username']").val(responseData.username);
+    $("input[name='info.sessionToken']").val(responseData.sessionToken);
+    $("input[name='info.request.username']").val(responseData.request.username);
+    $("input[name='info.request.requestId']").val(responseData.request.requestId);
+    $("input[name='info.request.publicKeyCredentialCreationOptions.rp']").val(JSON.stringify(responseData.request.publicKeyCredentialCreationOptions.rp));
+    $("input[name='info.request.publicKeyCredentialCreationOptions.user']").val(JSON.stringify(responseData.request.publicKeyCredentialCreationOptions.user));
+    $("input[name='info.request.publicKeyCredentialCreationOptions.challenge']").val(responseData.request.publicKeyCredentialCreationOptions.challenge);
+    $("input[name='info.request.publicKeyCredentialCreationOptions.pubKeyCredParams']").val(JSON.stringify(responseData.request.publicKeyCredentialCreationOptions.pubKeyCredParams));
+    $("input[name='info.request.publicKeyCredentialCreationOptions.excludeCredentials']").val(JSON.stringify(responseData.request.publicKeyCredentialCreationOptions.excludeCredentials));
+    $("input[name='info.request.publicKeyCredentialCreationOptions.authenticatorSelection']").val(JSON.stringify(responseData.request.publicKeyCredentialCreationOptions.authenticatorSelection));
+    $("input[name='info.request.publicKeyCredentialCreationOptions.attestation']").val(JSON.stringify(responseData.request.publicKeyCredentialCreationOptions.attestation));
+    $("input[name='info.request.publicKeyCredentialCreationOptions.extensions']").val(JSON.stringify(responseData.request.publicKeyCredentialCreationOptions.extensions));
+    $("input[name='info.response.requestId']").val(responseData.response.requestId);
+    $("input[name='info.response.credential.u2fResponse.keyHandle']").val(responseData.response.credential.u2fResponse.keyHandle);
+    $("input[name='info.response.credential.u2fResponse.publicKey']").val(responseData.response.credential.u2fResponse.publicKey);
+    $("input[name='info.response.credential.u2fResponse.attestationCertAndSignature']").val(responseData.response.credential.u2fResponse.attestationCertAndSignature);
+    $("input[name='info.response.credential.u2fResponse.clientDataJSON']").val(responseData.response.credential.u2fResponse.clientDataJSON);
+    $("input[name='info.registration.signatureCount']").val(responseData.registration.signatureCount);
+    $("input[name='info.registration.username']").val(responseData.registration.username);
+    $("input[name='info.registration.registrationTime']").val(responseData.registration.registrationTime);
+    $("input[name='info.registration.userIdentity.name']").val(responseData.registration.userIdentity.name);
+    $("input[name='info.registration.userIdentity.displayName']").val(responseData.registration.userIdentity.displayName);
+    $("input[name='info.registration.userIdentity.id']").val(responseData.registration.userIdentity.id);
+    $("input[name='info.registration.credential.credentialId']").val(responseData.registration.credential.credentialId);
+    $("input[name='info.registration.credential.userHandle']").val(responseData.registration.credential.userHandle);
+    $("input[name='info.registration.credential.publicKeyCose']").val(responseData.registration.credential.publicKeyCose);
+    $("input[name='info.registration.credential.signatureCount']").val(responseData.registration.credential.signatureCount);
+    $("input[name='info.registration.attestationMetadata.trusted']").val(responseData.registration.attestationMetadata.trusted);
+    $("input[name='info.registration.attestationMetadata.metadataIdentifier']").val(responseData.registration.attestationMetadata.metadataIdentifier);
+    $("input[name='info.registration.attestationMetadata.transports']").val(responseData.registration.attestationMetadata.transports);
+    $("input[name='info.registration.attestationMetadata.vendorProperties.url']").val(responseData.registration.attestationMetadata.vendorProperties.url);
+    $("input[name='info.registration.attestationMetadata.vendorProperties.imageUrl']").val(responseData.registration.attestationMetadata.vendorProperties.imageUrl);
+    $("input[name='info.registration.attestationMetadata.vendorProperties.name']").val(responseData.registration.attestationMetadata.vendorProperties.name);
+    $("input[name='info.registration.attestationMetadata.deviceProperties.deviceId']").val(responseData.registration.attestationMetadata.deviceProperties.deviceId);
+    $("input[name='info.registration.attestationMetadata.deviceProperties.displayName']").val(responseData.registration.attestationMetadata.deviceProperties.displayName);
+    $("input[name='info.registration.attestationMetadata.deviceProperties.deviceUrl']").val(responseData.registration.attestationMetadata.deviceProperties.deviceUrl);
+    $("input[name='info.registration.attestationMetadata.deviceProperties.imageUrl']").val(responseData.registration.attestationMetadata.deviceProperties.imageUrl);
+    $("input[name='info.attestationCert.der']").val(responseData.attestationCert.der);
+    $("input[name='info.attestationCert.text']").val(responseData.attestationCert.text);
 }
 
 // 清除注册操作结果

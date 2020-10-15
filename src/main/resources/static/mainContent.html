@@ -10,7 +10,9 @@
     <script src="js/u2f-api.js"></script>
     <script src="js/common.js"></script>
     <script src="js/mainContent.js"></script>
-
+    <script src="lib/base64js/base64js-1.3.0.min.js"></script>
+    <script src="js/base64url.js"></script>
+    <script src="js/webauthn.js"></script>
     <link href="js/jquery-ui-1.12.1/jquery-ui.css" rel="stylesheet">
     <link href="js/jquery-ui-1.12.1/jquery-ui.theme.css" rel="stylesheet">
 
@@ -120,25 +122,226 @@
                 <legend>U2F设备绑定操作</legend>
                 <table cellpadding="5">
                     <tr>
-                        <td align="left">challenge：</td>
-                        <td align="left"><input name="challenge" type="text" size="80" disabled="disabled"></td>
+                        <td align="left">success：</td>
+                        <td align="left"><input name="info.success" type="text" size="80" disabled="disabled"></td>
                     </tr>
                     <tr>
-                        <td align="left">version：</td>
-                        <td align="left"><input name="version" type="text" size="80" disabled="disabled"></td>
+                        <td align="left">username：</td>
+                        <td align="left"><input name="info.username" type="text" size="80" disabled="disabled"></td>
                     </tr>
                     <tr>
-                        <td align="left">appId：</td>
-                        <td align="left"><input name="appId" type="text" size="80" disabled="disabled"></td>
+                        <td align="left">sessionToken：</td>
+                        <td align="left"><input name="info.sessionToken" type="text" size="80" disabled="disabled"></td>
                     </tr>
-                    <tr>
-                        <td align="left">keyHandle：</td>
-                        <td align="left"><input name="keyHandle" type="text" size="80" disabled="disabled"></td>
-                    </tr>
-                    <tr>
-                        <td align="left">publicKey：</td>
-                        <td align="left"><input name="publicKey" type="text" size="80" disabled="disabled"></td>
-                    </tr>
+                </table>
+                <fieldset align="left" style="padding:20px;margin-top:10px">
+                    <legend>request</legend>
+                    <table cellpadding="5">
+                        <tr>
+                            <td align="left">username：</td>
+                            <td align="left"><input name="info.request.username" type="text" size="80" disabled="disabled"></td>
+                        </tr>
+                        <tr>
+                            <td align="left">requestId：</td>
+                            <td align="left"><input name="info.request.requestId" type="text" size="80" disabled="disabled"></td>
+                        </tr>
+                        <tr>
+                            <td align="left">sessionToken：</td>
+                            <td align="left"><input name="info.request.sessionToken" type="text" size="80" disabled="disabled"></td>
+                        </tr>
+                    </table>
+                    <fieldset align="left" style="padding:20px;margin-top:10px">
+                        <legend>publicKeyCredentialCreationOptions</legend>
+                        <table cellpadding="5">
+                            <tr>
+                                <td align="left">rp：</td>
+                                <td align="left"><input name="info.request.publicKeyCredentialCreationOptions.rp" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">user：</td>
+                                <td align="left"><input name="info.request.publicKeyCredentialCreationOptions.user" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">challenge：</td>
+                                <td align="left"><input name="info.request.publicKeyCredentialCreationOptions.challenge" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">pubKeyCredParams：</td>
+                                <td align="left"><input name="info.request.publicKeyCredentialCreationOptions.pubKeyCredParams" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">excludeCredentials：</td>
+                                <td align="left"><input name="info.request.publicKeyCredentialCreationOptions.excludeCredentials" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">authenticatorSelection：</td>
+                                <td align="left"><input name="info.request.publicKeyCredentialCreationOptions.authenticatorSelection" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">attestation：</td>
+                                <td align="left"><input name="info.request.publicKeyCredentialCreationOptions.attestation" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">extensions：</td>
+                                <td align="left"><input name="info.request.publicKeyCredentialCreationOptions.extensions" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                        </table>
+                    </fieldset>
+                </fieldset>
+                <fieldset align="left" style="padding:20px;margin-top:10px">
+                    <legend>response</legend>
+                    <table cellpadding="5">
+                        <tr>
+                            <td align="left">requestId：</td>
+                            <td align="left"><input name="info.response.requestId" type="text" size="80" disabled="disabled"></td>
+                        </tr>
+                    </table>
+                    <fieldset align="left" style="padding:20px;margin-top:10px">
+                        <legend>credential.u2fResponse</legend>
+                        <table cellpadding="5">
+                            <tr>
+                                <td align="left">keyHandle：</td>
+                                <td align="left"><input name="info.response.credential.u2fResponse.keyHandle" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">publicKey：</td>
+                                <td align="left"><input name="info.response.credential.u2fResponse.publicKey" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">attestationCertAndSignature：</td>
+                                <td align="left"><input name="info.response.credential.u2fResponse.attestationCertAndSignature" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">clientDataJSON：</td>
+                                <td align="left"><input name="info.response.credential.u2fResponse.clientDataJSON" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                        </table>
+                    </fieldset>
+                </fieldset>
+                <fieldset align="left" style="padding:20px;margin-top:10px">
+                    <legend>registration</legend>
+                    <table cellpadding="5">
+                        <tr>
+                            <td align="left">signatureCount：</td>
+                            <td align="left"><input name="info.registration.signatureCount" type="text" size="80" disabled="disabled"></td>
+                        </tr>
+                        <tr>
+                            <td align="left">username：</td>
+                            <td align="left"><input name="info.registration.username" type="text" size="80" disabled="disabled"></td>
+                        </tr>
+                        <tr>
+                            <td align="left">registrationTime：</td>
+                            <td align="left"><input name="info.registration.registrationTime" type="text" size="80" disabled="disabled"></td>
+                        </tr>
+                    </table>
+                    <fieldset align="left" style="padding:20px;margin-top:10px">
+                        <legend>userIdentity</legend>
+                        <table cellpadding="5">
+                            <tr>
+                                <td align="left">name：</td>
+                                <td align="left"><input name="info.registration.userIdentity.name" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">displayName：</td>
+                                <td align="left"><input name="info.registration.userIdentity.displayName" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">id：</td>
+                                <td align="left"><input name="info.registration.userIdentity.id" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                        </table>
+                    </fieldset>
+                    <fieldset align="left" style="padding:20px;margin-top:10px">
+                        <legend>credential</legend>
+                        <table cellpadding="5">
+                            <tr>
+                                <td align="left">credentialId：</td>
+                                <td align="left"><input name="info.registration.credential.credentialId" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">userHandle：</td>
+                                <td align="left"><input name="info.registration.credential.userHandle" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">publicKeyCose：</td>
+                                <td align="left"><input name="info.registration.credential.publicKeyCose" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">signatureCount：</td>
+                                <td align="left"><input name="info.registration.credential.signatureCount" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                        </table>
+                    </fieldset>
+                    <fieldset align="left" style="padding:20px;margin-top:10px">
+                        <legend>attestationMetadata</legend>
+                        <table cellpadding="5">
+                            <tr>
+                                <td align="left">trusted：</td>
+                                <td align="left"><input name="info.registration.attestationMetadata.trusted" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">metadataIdentifier：</td>
+                                <td align="left"><input name="info.registration.attestationMetadata.metadataIdentifier" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                            <tr>
+                                <td align="left">transports：</td>
+                                <td align="left"><input name="info.registration.attestationMetadata.transports" type="text" size="80" disabled="disabled"></td>
+                            </tr>
+                        </table>
+                        <fieldset align="left" style="padding:20px;margin-top:10px">
+                            <legend>vendorProperties</legend>
+                            <table cellpadding="5">
+                                <tr>
+                                    <td align="left">url：</td>
+                                    <td align="left"><input name="info.registration.attestationMetadata.vendorProperties.url" type="text" size="80" disabled="disabled"></td>
+                                </tr>
+                                <tr>
+                                    <td align="left">imageUrl：</td>
+                                    <td align="left"><input name="info.registration.attestationMetadata.vendorProperties.imageUrl" type="text" size="80" disabled="disabled"></td>
+                                </tr>
+                                <tr>
+                                    <td align="left">name：</td>
+                                    <td align="left"><input name="info.registration.attestationMetadata.vendorProperties.name" type="text" size="80" disabled="disabled"></td>
+                                </tr>
+                            </table>
+                        </fieldset>
+                        <fieldset align="left" style="padding:20px;margin-top:10px">
+                            <legend>deviceProperties</legend>
+                            <table cellpadding="5">
+                                <tr>
+                                    <td align="left">deviceId：</td>
+                                    <td align="left"><input name="info.registration.attestationMetadata.deviceProperties.deviceId" type="text" size="80" disabled="disabled"></td>
+                                </tr>
+                                <tr>
+                                    <td align="left">displayName：</td>
+                                    <td align="left"><input name="info.registration.attestationMetadata.deviceProperties.displayName" type="text" size="80" disabled="disabled"></td>
+                                </tr>
+                                <tr>
+                                    <td align="left">deviceUrl：</td>
+                                    <td align="left"><input name="info.registration.attestationMetadata.deviceProperties.deviceUrl" type="text" size="80" disabled="disabled"></td>
+                                </tr>
+                                <tr>
+                                    <td align="left">imageUrl：</td>
+                                    <td align="left"><input name="info.registration.attestationMetadata.deviceProperties.imageUrl" type="text" size="80" disabled="disabled"></td>
+                                </tr>
+                            </table>
+                        </fieldset>
+                    </fieldset>
+                </fieldset>
+                <fieldset align="left" style="padding:20px;margin-top:10px">
+                    <legend>attestationCert</legend>
+                    <table cellpadding="5">
+                        <tr>
+                            <td align="left">der：</td>
+                            <td align="left"><input name="info.attestationCert.der" type="text" size="80" disabled="disabled"></td>
+                        </tr>
+                        <tr>
+                            <td align="left">text：</td>
+                            <td align="left"><input name="info.attestationCert.text" type="text" size="80" disabled="disabled"></td>
+                        </tr>
+                    </table>
+                </fieldset>
+                <table cellpadding="5">
                     <tr>
                         <td align="right">
                             <input name="btnRegU2f" type="button" class='button  bigrounded blue' value="绑定U2F设备">

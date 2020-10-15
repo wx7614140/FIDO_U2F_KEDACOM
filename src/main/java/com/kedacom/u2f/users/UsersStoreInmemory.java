@@ -1,7 +1,7 @@
 /**
 * Filename : TestFile.java
 * Author : zhangkai
-* Creation time : 2018年9月14日下午1:06:06 
+* Creation time : 2018年9月14日下午1:06:06
 * Description :
 */
 package com.kedacom.u2f.users;
@@ -12,23 +12,23 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kedacom.u2f.data.CredentialRegistration;
+import com.yubico.internal.util.JacksonCodecs;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.yubico.u2f.data.DeviceRegistration;
-import com.yubico.u2f.exceptions.U2fBadInputException;
 
 import com.kedacom.u2f.common.UserListNode;
 import com.kedacom.u2f.common.UserInfo;
 import com.kedacom.u2f.consts.U2fConsts;
-
+@Slf4j
 public class UsersStoreInmemory implements IUserStore {
-
-	private static Logger logger = LoggerFactory.getLogger(UsersStoreInmemory.class);
 
 	/* <username,password> ,keep thread safe */
 	private ConcurrentHashMap<String, String> userpwdMap;
-
+	private final ObjectMapper objectMapper = JacksonCodecs.json();
 	/*
 	 * <username,hashmap of register_info<keyhandle,regdata.tojson()>, keep
 	 * thread safe
@@ -36,7 +36,7 @@ public class UsersStoreInmemory implements IUserStore {
 	private ConcurrentHashMap<String, HashMap<String, String>> userRegInfoMap;
 
 	/**
-	 * 
+	 *
 	 */
 	public UsersStoreInmemory() {
 		userpwdMap = new ConcurrentHashMap<String, String>();
@@ -45,11 +45,12 @@ public class UsersStoreInmemory implements IUserStore {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param username
 	 * @param pwd
 	 * @return
 	 */
+	@Override
 	public boolean addUser(String username, String pwd) {
 		if (null != userpwdMap) {
 			userpwdMap.put(username, pwd);
@@ -61,10 +62,11 @@ public class UsersStoreInmemory implements IUserStore {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param username
 	 * @return
 	 */
+	@Override
 	public boolean removeUser(String username) {
 		if (null != userpwdMap) {
 			userpwdMap.remove(username);
@@ -74,24 +76,25 @@ public class UsersStoreInmemory implements IUserStore {
 			return false;
 		}
 	}
-	
+
 	/**
-	 * 
+	 *
 	 */
+	@Override
 	public boolean modifyPassword(String username, String pwd){
 		if (null != userpwdMap) {
 			if(null != userpwdMap.get(username)){
 				userpwdMap.put(username, pwd);
 				return true;
 			}else{
-				logger.error("modifyPassword:no such user "+username);
+				log.error("modifyPassword:no such user "+username);
 			}
 		}
 		return false;
 	}
 
 	/**
-	 * 
+	 *
 	 */
 	@Override
 	public boolean ifUserExists(String username) {
@@ -103,11 +106,12 @@ public class UsersStoreInmemory implements IUserStore {
 	}
 
 	/**
-	 * 
+	 *
 	 * @param username
 	 * @param pwd
 	 * @return
 	 */
+	@Override
 	public boolean checkUser(String username, String pwd) {
 		String password = userpwdMap.get(username);
 		if ((null != password) && (password.equals(pwd))) {
@@ -119,19 +123,20 @@ public class UsersStoreInmemory implements IUserStore {
 
 	/**
 	 * return RegInfo from user
-	 * 
+	 *
 	 * @param username
 	 * @return
 	 */
-	public List<DeviceRegistration> getUserRegInfo(String username) {
-		List<DeviceRegistration> registrations = new ArrayList<DeviceRegistration>();
+	@Override
+	public List<CredentialRegistration> getUserRegInfo(String username) {
+		List<CredentialRegistration> registrations = new ArrayList<CredentialRegistration>();
 		HashMap<String, String> regmap = userRegInfoMap.get(username);
 		try {
 			for (String serialized : regmap.values()) {
-				registrations.add(DeviceRegistration.fromJson(serialized));
+				registrations.add(objectMapper.readValue(serialized,CredentialRegistration.class));
 			}
-		} catch (U2fBadInputException e) {
-			logger.error("getUserRegInfo error", e);
+		} catch (JsonProcessingException e) {
+			log.error("getUserRegInfo error", e);
 			return null;
 		}
 		return registrations;
@@ -140,6 +145,7 @@ public class UsersStoreInmemory implements IUserStore {
 	/**
 	 * bind the user with register data
 	 */
+	@Override
 	public boolean addUserRegInfo(String username, String keyhandle, String reginfojson) {
 		HashMap<String, String> regmap = userRegInfoMap.get(username);
 		if (null == regmap) {
@@ -153,10 +159,11 @@ public class UsersStoreInmemory implements IUserStore {
 	/**
 	 * unbind the register data for the user
 	 */
+	@Override
 	public boolean delUserRegInfo(String username, String keyhandle) {
 		HashMap<String, String> regmap = userRegInfoMap.get(username);
 		if (null == regmap) {
-			logger.error("delUserRegInfo:get regmap of " + username + " is null.");
+			log.error("delUserRegInfo:get regmap of " + username + " is null.");
 			return false;
 		} else {
 			regmap.remove(keyhandle);
@@ -168,6 +175,7 @@ public class UsersStoreInmemory implements IUserStore {
 	 * if username equals "admin",return all the users;else just return the user
 	 * with the username.
 	 */
+	@Override
 	public List<UserListNode> getUserList(String username) {
 		CopyOnWriteArrayList<UserListNode> userNodeList = null;
 		if (U2fConsts.ADMINNAME.equals(username)) {
