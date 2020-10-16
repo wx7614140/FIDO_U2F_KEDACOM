@@ -18,12 +18,8 @@ import com.google.common.collect.Sets;
 import com.kedacom.u2f.consts.U2fConsts;
 import com.kedacom.u2f.data.AssertionRequestWrapper;
 import com.kedacom.u2f.data.RegistrationRequest;
-import com.kedacom.u2f.users.IUserStore;
 import com.kedacom.u2f.users.InMemoryRegistrationStorage;
 import com.kedacom.u2f.users.RegistrationStorage;
-import com.kedacom.u2f.users.UsersStoreInmemory;
-import com.yubico.webauthn.CredentialRepository;
-import com.yubico.webauthn.RelyingParty;
 import com.yubico.webauthn.data.ByteArray;
 import com.yubico.webauthn.data.RelyingPartyIdentity;
 import com.yubico.webauthn.extension.appid.AppId;
@@ -72,19 +68,6 @@ public class KedacomU2FDemoApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(KedacomU2FDemoApplication.class, args);
-	}
-
-	/**
-	 * initiate the users store and insert the first user 'admin'
-	 *
-	 * @return
-	 */
-	@Bean
-	public IUserStore initUsersStore() {
-		UsersStoreInmemory us = new UsersStoreInmemory();
-		us.addUser(U2fConsts.ADMINNAME, U2fConsts.ADMINPWD);
-		log.info("UsersStore initated!");
-		return us;
 	}
 
 	@Bean

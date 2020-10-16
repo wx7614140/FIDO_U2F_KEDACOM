@@ -26,7 +26,9 @@ package com.kedacom.u2f.users;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.kedacom.u2f.common.UserInfo;
 import com.kedacom.u2f.common.UserListNode;
+import com.kedacom.u2f.consts.U2fConsts;
 import com.kedacom.u2f.data.CredentialRegistration;
 import com.yubico.internal.util.CollectionUtil;
 import com.yubico.webauthn.AssertionResult;
@@ -35,10 +37,9 @@ import com.yubico.webauthn.RegisteredCredential;
 import com.yubico.webauthn.data.ByteArray;
 import com.yubico.webauthn.data.PublicKeyCredentialDescriptor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -49,7 +50,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class InMemoryRegistrationStorage implements RegistrationStorage, CredentialRepository {
 
-    private final Cache<String, Set<CredentialRegistration>> storage = CacheBuilder.newBuilder()
+    private final Cache<String, Map<ByteArray,CredentialRegistration>> storage = CacheBuilder.newBuilder()
             .maximumSize(1000)
             .expireAfterAccess(1, TimeUnit.DAYS)
             .build();
@@ -66,6 +67,7 @@ public class InMemoryRegistrationStorage implements RegistrationStorage, Credent
     @Override
     public boolean removeUser(String username) {
         userStorage.invalidate(username);
+        storage.invalidate(username);
         return true;
     }
 
@@ -81,24 +83,43 @@ public class InMemoryRegistrationStorage implements RegistrationStorage, Credent
     }
 
     @Override
-    public boolean addUserRegInfo(String username, String keyhandle, String reginfojson) {
-        return false;
-    }
-
-    @Override
-    public boolean delUserRegInfo(String username, String keyhandle) {
-        return false;
+    public boolean delUserRegInfo(String username, ByteArray credentialId) {
+        try {
+            storage.get(username, HashMap::new).remove(credentialId);
+            return true;
+        } catch (ExecutionException e) {
+            log.error("Failed to remove registration", e);
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
     public List<UserListNode> getUserList(String username) {
-        return null;
+
+        CopyOnWriteArrayList<UserListNode> userNodeList = new CopyOnWriteArrayList<UserListNode>();;
+        if (!U2fConsts.ADMINNAME.equals(username)) {
+            if ((null != username) && (!"".equals(username))) {
+                UserListNode node = new UserListNode();
+                node.setUserinfo(new UserInfo.Builder().withUser(userStorage.getIfPresent(username)).build());
+                node.setUserreginfo(storage.getIfPresent(username));
+                userNodeList.add(node);
+            }
+        } else {
+            userStorage.asMap().forEach((k,v)->{
+                UserListNode node = new UserListNode();
+                node.setUserinfo(new UserInfo.Builder().withUser(v).build());
+                node.setUserreginfo(storage.getIfPresent(k));
+                userNodeList.add(node);
+            });
+        }
+        return userNodeList;
     }
 
     @Override
     public boolean addRegistrationByUsername(String username, CredentialRegistration reg) {
         try {
-            return storage.get(username, HashSet::new).add(reg);
+            storage.get(username, HashMap::new).put(reg.getCredential().getCredentialId(),reg);
+            return true;
         } catch (ExecutionException e) {
             log.error("Failed to add registration", e);
             throw new RuntimeException(e);
@@ -117,7 +138,7 @@ public class InMemoryRegistrationStorage implements RegistrationStorage, Credent
     @Override
     public Collection<CredentialRegistration> getRegistrationsByUsername(String username) {
         try {
-            return storage.get(username, HashSet::new);
+            return storage.get(username, HashMap::new).values();
         } catch (ExecutionException e) {
             log.error("Registration lookup failed", e);
             throw new RuntimeException(e);
@@ -127,6 +148,7 @@ public class InMemoryRegistrationStorage implements RegistrationStorage, Credent
     @Override
     public Collection<CredentialRegistration> getRegistrationsByUserHandle(ByteArray userHandle) {
         return storage.asMap().values().stream()
+                .map(Map::values)
                 .flatMap(Collection::stream)
                 .filter(credentialRegistration ->
                         userHandle.equals(credentialRegistration.getUserIdentity().getId())
@@ -156,16 +178,16 @@ public class InMemoryRegistrationStorage implements RegistrationStorage, Credent
                         result.getCredentialId(), result.getUsername()
                 )));
 
-        Set<CredentialRegistration> regs = storage.getIfPresent(result.getUsername());
-        regs.remove(registration);
-        regs.add(registration.withSignatureCount(result.getSignatureCount()));
+        Map<ByteArray,CredentialRegistration> regs = storage.getIfPresent(result.getUsername());
+        regs.remove(result.getCredentialId());
+        regs.put(result.getCredentialId(),registration.withSignatureCount(result.getSignatureCount()));
     }
 
 
     @Override
     public Optional<CredentialRegistration> getRegistrationByUsernameAndCredentialId(String username, ByteArray id) {
         try {
-            return storage.get(username, HashSet::new).stream()
+            return storage.get(username, HashMap::new).values().stream()
                     .filter(credReg -> id.equals(credReg.getCredential().getCredentialId()))
                     .findFirst();
         } catch (ExecutionException e) {
@@ -177,7 +199,8 @@ public class InMemoryRegistrationStorage implements RegistrationStorage, Credent
     @Override
     public boolean removeRegistrationByUsername(String username, CredentialRegistration credentialRegistration) {
         try {
-            return storage.get(username, HashSet::new).remove(credentialRegistration);
+            storage.get(username, HashMap::new).remove(credentialRegistration.getCredential().getCredentialId());
+            return true;
         } catch (ExecutionException e) {
             log.error("Failed to remove registration", e);
             throw new RuntimeException(e);
@@ -193,6 +216,7 @@ public class InMemoryRegistrationStorage implements RegistrationStorage, Credent
     @Override
     public Optional<RegisteredCredential> lookup(ByteArray credentialId, ByteArray userHandle) {
         Optional<CredentialRegistration> registrationMaybe = storage.asMap().values().stream()
+                .map(Map::values)
                 .flatMap(Collection::stream)
                 .filter(credReg -> credentialId.equals(credReg.getCredential().getCredentialId()))
                 .findAny();
@@ -214,6 +238,7 @@ public class InMemoryRegistrationStorage implements RegistrationStorage, Credent
     public Set<RegisteredCredential> lookupAll(ByteArray credentialId) {
         return CollectionUtil.immutableSet(
                 storage.asMap().values().stream()
+                        .map(Map::values)
                         .flatMap(Collection::stream)
                         .filter(reg -> reg.getCredential().getCredentialId().equals(credentialId))
                         .map(reg -> RegisteredCredential.builder()

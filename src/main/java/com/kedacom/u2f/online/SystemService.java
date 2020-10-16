@@ -6,10 +6,18 @@
 */
 package com.kedacom.u2f.online;
 
+import java.util.Collection;
 import java.util.List;
 
 import javax.servlet.http.HttpSession;
 
+import com.kedacom.u2f.data.CredentialRegistration;
+import com.kedacom.u2f.u2foper.BaseController;
+import com.kedacom.u2f.users.RegistrationStorage;
+import com.yubico.webauthn.RegisteredCredential;
+import com.yubico.webauthn.data.ByteArray;
+import com.yubico.webauthn.data.exception.Base64UrlException;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +29,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
-import com.kedacom.u2f.users.IUserStore;
 import com.kedacom.u2f.common.UserInfo;
 import com.kedacom.u2f.common.UnRegRequest;
 import com.kedacom.u2f.common.UserListNode;
@@ -29,12 +36,11 @@ import com.kedacom.u2f.common.ResponseStateInfo;
 import com.kedacom.u2f.consts.U2fConsts.ResponseState;
 
 @Controller
-public class SystemService {
-
-	private static Logger log = LoggerFactory.getLogger(SystemService.class);
+@Slf4j
+public class SystemService  extends BaseController {
 
 	@Autowired
-	private IUserStore us;
+	private RegistrationStorage registrationStorage;
 
 	/**
 	 * User enter the main page and get the user name of current session
@@ -82,9 +88,19 @@ public class SystemService {
 			un = "";
 		}
 		log.info("the current login name is:" + un);
-		return us.getUserList(un);
+		return registrationStorage.getUserList(un);
 	}
 
+	@RequestMapping(value = "/loadUserRegInfo", method = RequestMethod.POST)
+	@ResponseBody
+	public Collection<CredentialRegistration> loadUserRegInfo(HttpSession session) {
+		String un = (String) session.getAttribute("username");
+		if (null == un) {
+			un = "";
+		}
+		log.info("the current login name is:" + un);
+		return registrationStorage.getRegistrationsByUsername(un);
+	}
 	/**
 	 * Add user on the page.
 	 *
@@ -95,11 +111,11 @@ public class SystemService {
 	@ResponseBody
 	private ResponseStateInfo addUser(@RequestBody UserInfo ui) {
 		ResponseStateInfo lsi = new ResponseStateInfo();
-		if (us.ifUserExists(ui.getUsername())) {
+		if (registrationStorage.userExists(ui.getUsername())) {
 			lsi.setResponseState(ResponseState.USER_EXISTED.getStateId());
 			log.error("add user fail:" + ui.getUsername() + " exists!");
 		} else {
-			if (us.addUser(ui.getUsername(), ui.getPassword())) {
+			if (registrationStorage.addUser(ui.getUsername(), ui.getPassword())) {
 				lsi.setResponseState(ResponseState.USER_ADDED.getStateId());
 				log.info("[success]adduser:" + ui.getUsername());
 			} else {
@@ -121,7 +137,7 @@ public class SystemService {
 	@ResponseBody
 	private ResponseStateInfo delUser(@RequestBody UserInfo ui) {
 		ResponseStateInfo lsi = new ResponseStateInfo();
-		if (us.removeUser(ui.getUsername())) {
+		if (registrationStorage.removeUser(ui.getUsername())) {
 			lsi.setResponseState(ResponseState.USER_DELED.getStateId());
 			log.info("[success]deluser:" + ui.getUsername());
 		} else {
@@ -142,7 +158,7 @@ public class SystemService {
 	@ResponseBody
 	private ResponseStateInfo modifyPassword(@RequestBody UserInfo ui) {
 		ResponseStateInfo lsi = new ResponseStateInfo();
-		if (us.modifyPassword(ui.getUsername(),ui.getPassword())) {
+		if (registrationStorage.modifyPassword(ui.getUsername(),ui.getPassword())) {
 			lsi.setResponseState(ResponseState.PASSWORD_MODIFIED.getStateId());
 			lsi.setResponseData(ui.getPassword());
 			log.info("[success]modifyPassword:" + ui.getUsername());
@@ -157,19 +173,27 @@ public class SystemService {
 	/**
 	 * unbind regiser data from user on the page.
 	 *
-	 * @param ui
 	 * @return
 	 */
 	@RequestMapping(value = "/unRegistration", method = RequestMethod.POST)
 	@ResponseBody
 	private ResponseStateInfo unRegistration(@RequestBody UnRegRequest urr) {
 		ResponseStateInfo lsi = new ResponseStateInfo();
-		if (us.delUserRegInfo(urr.getUsername(), urr.getKeyhandle())) {
+		final ByteArray credentialId;
+		try {
+			credentialId = ByteArray.fromBase64Url(urr.getCredentialId());
+		} catch (Base64UrlException e) {
+			return messagesJson(
+					ResponseState.SERVER_ERROR.getStateId(),
+					"Credential ID is not valid Base64Url data: " + urr.getCredentialId()
+			);
+		}
+		if (registrationStorage.delUserRegInfo(urr.getUsername(), credentialId)) {
 			lsi.setResponseState(ResponseState.DEL_REGISTRATION.getStateId());
-			log.info("[success]unRegistration:" + urr.getUsername() + " with keyhandle:" + urr.getKeyhandle());
+			log.info("[success]unRegistration:" + urr.getUsername() + " with keyhandle:" + urr.getCredentialId());
 		} else {
 			lsi.setResponseState(ResponseState.SERVER_ERROR.getStateId());
-			log.info("unRegistration fail:" + urr.getUsername() + " with keyhandle:" + urr.getKeyhandle()
+			log.info("unRegistration fail:" + urr.getUsername() + " with keyhandle:" + urr.getCredentialId()
 					+ " oper fail!");
 		}
 		;

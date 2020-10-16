@@ -38,9 +38,8 @@ public interface RegistrationStorage extends CredentialRepository {
 
     boolean checkUser(String username, String pwd);
 
-    boolean addUserRegInfo(String username,String keyhandle, String reginfojson);
 
-    boolean delUserRegInfo(String username,String keyhandle);
+    boolean delUserRegInfo(String username,ByteArray credentialId);
 
     List<UserListNode> getUserList(String username); //if admin,return all;if not admin,just return himself.
 }

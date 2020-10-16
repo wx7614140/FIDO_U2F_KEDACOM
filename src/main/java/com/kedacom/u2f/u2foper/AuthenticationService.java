@@ -44,19 +44,13 @@ import com.kedacom.u2f.consts.U2fConsts.ResponseState;
 
 @Slf4j
 @RestController
-public class AuthenticationService {
+public class AuthenticationService  extends BaseController{
 
 	@Autowired
 	private RegistrationStorage registrationStorage;
 
 	@Autowired
 	private WebAuthnServer server;
-
-
-	private final ObjectMapper jsonMapper = new ObjectMapper()
-			.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-			.setSerializationInclusion(JsonInclude.Include.NON_ABSENT)
-			.registerModule(new Jdk8Module());
 
 	private final class StartRegistrationResponse {
 		public final boolean success = true;
@@ -107,7 +101,7 @@ public class AuthenticationService {
 		private StartAuthenticationActions() throws MalformedURLException {
 		}
 	}
-	private final JsonNodeFactory jsonFactory = JsonNodeFactory.instance;
+
 
 	/**
 	 * user login through the index page. If the user has bind the U2f , start
@@ -270,37 +264,6 @@ public class AuthenticationService {
 			);
 		}
 		return lsi;
-	}
-
-	private ResponseStateInfo jsonFail(ResponseStateInfo lsi) {
-		lsi.setResponseState(ResponseState.SERVER_ERROR.getStateId());
-		return lsi;
-	}
-
-	private ResponseStateInfo messagesJson(int state, String message) {
-		return messagesJson(state, Arrays.asList(message));
-	}
-
-	private ResponseStateInfo messagesJson(int state, List<String> messages) {
-		ResponseStateInfo lsi = new ResponseStateInfo();
-		log.debug("Encoding messages as JSON: {}", messages);
-		lsi.setResponseState(state);
-		try {
-			lsi.setResponseData(writeJson(
-					jsonFactory.objectNode()
-							.set("messages", jsonFactory.arrayNode()
-									.addAll(messages.stream().map(jsonFactory::textNode).collect(Collectors.toList()))
-							)
-			));
-			return lsi;
-		} catch (JsonProcessingException e) {
-			log.error("Failed to encode messages as JSON: {}", messages, e);
-			return jsonFail(lsi);
-		}
-	}
-
-	private String writeJson(Object o) throws JsonProcessingException {
-		return jsonMapper.writeValueAsString(o);
 	}
 
 }

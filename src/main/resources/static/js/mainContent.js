@@ -196,22 +196,22 @@ function onUserClick(liEle) {
     //“绑定数据”TAB页
     clearBindData();
     var reginfo = userRegInfoList[username]['userreginfo'];
-    for (var keyhandle in reginfo) {
-        $("#keyhandleList").append("<option value=\"" + keyhandle + "\">" + keyhandle + "</option>");
+    for (const credentialId in reginfo) {
+        $("#keyhandleList").append("<option value=\"" + credentialId + "\">" + credentialId + "</option>");
     }
     $("#keyhandleList").change();
 }
 
 //keyhandle列表被选择改变
 function onKeyhandleListChange(el) {
-    var currKeyhandle = this.value;
+    var currCredentialId = this.value;
     var username = currentUi.username;
-    if ((currKeyhandle) && (currKeyhandle != "")) {
-        var binddata = userRegInfoList[username]['userreginfo'][currKeyhandle];
-        $("input[name='regPublicKey']").val(binddata.publicKey);
-        $("input[name='regKeyHandle']").val(binddata.keyHandle);
-        $("input[name='regCounter']").val(binddata.counter);
-        $("input[name='regCompromised']").val(binddata.compromised);
+    if ((currCredentialId) && (currCredentialId != "")) {
+        var binddata = userRegInfoList[username]['userreginfo'][currCredentialId];
+        $("input[name='regPublicKey']").val(binddata.publicKeyCose);
+        $("input[name='regCredentialId']").val(binddata.credentialId);
+        $("input[name='regCounter']").val(binddata.signatureCount);
+        $("input[name='regCompromised']").val(binddata.userHandle);
     } else {
         clearBindData();
     }
@@ -433,10 +433,10 @@ function handleSaveRegistrationRsp(rrs) {
 
             //增加到全局变量中并渲染“绑定数据”TAB页
             clearBindData();
-            userRegInfoList[currentUi.username]['userreginfo'][regdate.response.credential.u2fResponse.keyHandle] = regdate.response.credential.u2fResponse;
+            userRegInfoList[currentUi.username]['userreginfo'][regdate.registration.credential.credentialId] = regdate.registration.credential;
             var reginfo = userRegInfoList[currentUi.username]['userreginfo'];
-            for (var keyhandle in reginfo) {
-                $("#keyhandleList").append("<option value=\"" + keyhandle + "\">" + keyhandle + "</option>");
+            for (var credentialId in reginfo) {
+                $("#keyhandleList").append("<option value=\"" + credentialId + "\">" + credentialId + "</option>");
             }
             $("#keyhandleList").change();
 
@@ -450,10 +450,10 @@ function handleSaveRegistrationRsp(rrs) {
 
 //绑定的U2F_keyhandle解除绑定
 function onBtnUnregU2f() {
-    var keyhandle = $("#keyhandleList").val();
-    if ((keyhandle) && (keyhandle != "")) {
+    var credentialId = $("#keyhandleList").val();
+    if ((credentialId) && (credentialId != "")) {
     	var username = currentUi.username;
-        if (confirm("您确定要解绑U2F设备[keyHandle=" + keyhandle + "]吗？")) {
+        if (confirm("您确定要解绑U2F设备[credentialId=" + credentialId + "]吗？")) {
             $.ajax({
                 type: "POST",
                 url: "/unRegistration",
@@ -463,10 +463,10 @@ function onBtnUnregU2f() {
                 },
                 data: JSON.stringify({
                     username: username,
-                    keyhandle: keyhandle
+                    credentialId: credentialId
                 }),
                 dataType: "json",
-                success: handleUnRegistrationRsp(username, keyhandle),
+                success: handleUnRegistrationRsp(username, credentialId),
                 error: ajaxError
             })
         }
@@ -476,15 +476,15 @@ function onBtnUnregU2f() {
 }
 
 //解除U2F设备绑定后回应处理
-function handleUnRegistrationRsp(username, keyhandle) {
+function handleUnRegistrationRsp(username, credentialId) {
     return function (data, state) {
         if (data.responseState == ENUM_ResponseState.DEL_REGISTRATION) {
             //全局变量中删除
-            delete userRegInfoList[username]['userreginfo'][keyhandle];
+            delete userRegInfoList[username]['userreginfo'][credentialId];
             //界面中删除
-            $("#keyhandleList option[value=" + keyhandle + "]").remove();
+            $("#keyhandleList option[value=" + credentialId + "]").remove();
             $("#keyhandleList").change();
-            trace("[success]del Registration:" + username + "/" + keyhandle);
+            trace("[success]del Registration:" + username + "/" + credentialId);
         } else {
             if (data.responseState == ENUM_ResponseState.SERVER_ERROR) {
                 alert("服务器端解除绑定注册信息失败！");
@@ -584,17 +584,52 @@ function showRegisterResult(registerRequests, responseData) {
 
 // 清除注册操作结果
 function clearRegisterResult() {
-    $("input[name='challenge']").val('');
-    $("input[name='version']").val('');
-    $("input[name='appId']").val('');
-    $("input[name='keyHandle']").val('');
-    $("input[name='publicKey']").val('');
+    $("input[name='info.success']").val('');
+    $("input[name='info.username']").val('');
+    $("input[name='info.sessionToken']").val('');
+    $("input[name='info.request.username']").val('');
+    $("input[name='info.request.requestId']").val('');
+    $("input[name='info.request.publicKeyCredentialCreationOptions.rp']").val('');
+    $("input[name='info.request.publicKeyCredentialCreationOptions.user']").val('');
+    $("input[name='info.request.publicKeyCredentialCreationOptions.challenge']").val('');
+    $("input[name='info.request.publicKeyCredentialCreationOptions.pubKeyCredParams']").val('');
+    $("input[name='info.request.publicKeyCredentialCreationOptions.excludeCredentials']").val('');
+    $("input[name='info.request.publicKeyCredentialCreationOptions.authenticatorSelection']").val('');
+    $("input[name='info.request.publicKeyCredentialCreationOptions.attestation']").val('');
+    $("input[name='info.request.publicKeyCredentialCreationOptions.extensions']").val('');
+    $("input[name='info.response.requestId']").val('');
+    $("input[name='info.response.credential.u2fResponse.keyHandle']").val('');
+    $("input[name='info.response.credential.u2fResponse.publicKey']").val('');
+    $("input[name='info.response.credential.u2fResponse.attestationCertAndSignature']").val('');
+    $("input[name='info.response.credential.u2fResponse.clientDataJSON']").val('');
+    $("input[name='info.registration.signatureCount']").val('');
+    $("input[name='info.registration.username']").val('');
+    $("input[name='info.registration.registrationTime']").val('');
+    $("input[name='info.registration.userIdentity.name']").val('');
+    $("input[name='info.registration.userIdentity.displayName']").val('');
+    $("input[name='info.registration.userIdentity.id']").val('');
+    $("input[name='info.registration.credential.credentialId']").val('');
+    $("input[name='info.registration.credential.userHandle']").val('');
+    $("input[name='info.registration.credential.publicKeyCose']").val('');
+    $("input[name='info.registration.credential.signatureCount']").val('');
+    $("input[name='info.registration.attestationMetadata.trusted']").val('');
+    $("input[name='info.registration.attestationMetadata.metadataIdentifier']").val('');
+    $("input[name='info.registration.attestationMetadata.transports']").val('');
+    $("input[name='info.registration.attestationMetadata.vendorProperties.url']").val('');
+    $("input[name='info.registration.attestationMetadata.vendorProperties.imageUrl']").val('');
+    $("input[name='info.registration.attestationMetadata.vendorProperties.name']").val('');
+    $("input[name='info.registration.attestationMetadata.deviceProperties.deviceId']").val('');
+    $("input[name='info.registration.attestationMetadata.deviceProperties.displayName']").val('');
+    $("input[name='info.registration.attestationMetadata.deviceProperties.deviceUrl']").val('');
+    $("input[name='info.registration.attestationMetadata.deviceProperties.imageUrl']").val('');
+    $("input[name='info.attestationCert.der']").val('');
+    $("input[name='info.attestationCert.text']").val('');
 }
 
 //清除界面上的U2F绑定数据
 function clearBindData() {
     $("#keyhandleList").empty();
-    $("input[name='regKeyHandle']").val('');
+    $("input[name='regCredentialId']").val('');
     $("input[name='regPublicKey']").val('');
     $("input[name='regCounter']").val('');
     $("input[name='regCompromised']").val('');
