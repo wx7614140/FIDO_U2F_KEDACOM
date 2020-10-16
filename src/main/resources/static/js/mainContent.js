@@ -208,10 +208,11 @@ function onKeyhandleListChange(el) {
     var username = currentUi.username;
     if ((currCredentialId) && (currCredentialId != "")) {
         var binddata = userRegInfoList[username]['userreginfo'][currCredentialId];
+        console.log(binddata)
         $("input[name='regPublicKey']").val(binddata.publicKeyCose);
         $("input[name='regCredentialId']").val(binddata.credentialId);
         $("input[name='regCounter']").val(binddata.signatureCount);
-        $("input[name='regCompromised']").val(binddata.userHandle);
+        $("input[name='regUserHandle']").val(binddata.userHandle);
     } else {
         clearBindData();
     }
@@ -632,7 +633,7 @@ function clearBindData() {
     $("input[name='regCredentialId']").val('');
     $("input[name='regPublicKey']").val('');
     $("input[name='regCounter']").val('');
-    $("input[name='regCompromised']").val('');
+    $("input[name='regUserHandle']").val('');
 }
 
 

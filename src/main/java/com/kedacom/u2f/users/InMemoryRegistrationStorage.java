@@ -96,19 +96,23 @@ public class InMemoryRegistrationStorage implements RegistrationStorage, Credent
     @Override
     public List<UserListNode> getUserList(String username) {
 
-        CopyOnWriteArrayList<UserListNode> userNodeList = new CopyOnWriteArrayList<UserListNode>();;
+        CopyOnWriteArrayList<UserListNode> userNodeList = new CopyOnWriteArrayList<UserListNode>();
         if (!U2fConsts.ADMINNAME.equals(username)) {
             if ((null != username) && (!"".equals(username))) {
+                Map<String, RegisteredCredential> reginfo = new HashMap<>();
                 UserListNode node = new UserListNode();
                 node.setUserinfo(new UserInfo.Builder().withUser(userStorage.getIfPresent(username)).build());
-                node.setUserreginfo(storage.getIfPresent(username));
+                storage.getIfPresent(username).forEach((k,v) -> reginfo.put(k.toJsonString(),v.getCredential()));
+                node.setUserreginfo(reginfo);
                 userNodeList.add(node);
             }
         } else {
             userStorage.asMap().forEach((k,v)->{
+                Map<String, RegisteredCredential> reginfo = new HashMap<>();
                 UserListNode node = new UserListNode();
                 node.setUserinfo(new UserInfo.Builder().withUser(v).build());
-                node.setUserreginfo(storage.getIfPresent(k));
+                storage.getIfPresent(k).forEach((kk,vv) -> reginfo.put(kk.toJsonString(),vv.getCredential()));
+                node.setUserreginfo(reginfo);
                 userNodeList.add(node);
             });
         }

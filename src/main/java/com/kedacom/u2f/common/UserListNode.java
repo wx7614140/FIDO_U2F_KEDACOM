@@ -6,15 +6,14 @@
 */
 package com.kedacom.u2f.common;
 
-import com.kedacom.u2f.data.CredentialRegistration;
-import com.yubico.webauthn.data.ByteArray;
+import com.yubico.webauthn.RegisteredCredential;
 
 import java.util.Map;
 
 public class UserListNode {
 
 	private UserInfo userinfo;
-	private Map<ByteArray,CredentialRegistration> userreginfo;
+	private Map<String,RegisteredCredential> userreginfo;
 
 	public UserInfo getUserinfo() {
 		return userinfo;
@@ -22,10 +21,10 @@ public class UserListNode {
 	public void setUserinfo(UserInfo userinfo) {
 		this.userinfo = userinfo;
 	}
-	public Map<ByteArray, CredentialRegistration> getUserreginfo() {
+	public Map<String, RegisteredCredential> getUserreginfo() {
 		return userreginfo;
 	}
-	public void setUserreginfo(Map<ByteArray, CredentialRegistration> userreginfo) {
+	public void setUserreginfo(Map<String, RegisteredCredential> userreginfo) {
 		this.userreginfo = userreginfo;
 	}
 
